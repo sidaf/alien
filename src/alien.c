@@ -2,9 +2,7 @@
 /* Author: Fabio Mascarenhas */
 /* License: MIT/X11 */
 
-#include "config.h"
-
-#ifdef WIN32  
+#ifdef WIN32
 # ifndef WINDOWS
 #  define WINDOWS
 # endif
@@ -67,7 +65,7 @@
 #include "lauxlib.h"
 
 /* Lua 5.1 compatibility for Lua 5.3 */
-#if LUA_VERSION_NUM == 503
+#if LUA_VERSION_NUM >= 503
 #define lua_objlen(L,i)		(lua_rawlen(L, (i)))
 #define luaL_register(L,n,l)	(luaL_newlib(L,l))
 #endif
@@ -346,16 +344,15 @@ static void *alien_loadfunc (lua_State *L, void *lib, const char *sym) {
 
 #endif
 
-#if !defined(WINDOWS) || defined(_WIN64)
+#if defined(_WIN64) || defined (__x86_64__)
 #define FFI_STDCALL FFI_DEFAULT_ABI
+#define FFI_FASTCALL FFI_DEFAULT_ABI
 #endif
 
-#ifdef __APPLE__
 #define FFI_SYSV FFI_DEFAULT_ABI
-#endif
 
-static const ffi_abi ffi_abis[] = { FFI_DEFAULT_ABI, FFI_SYSV, FFI_STDCALL };
-static const char *const ffi_abi_names[] = { "default", "cdecl", "stdcall", NULL };
+static const ffi_abi ffi_abis[] = { FFI_DEFAULT_ABI, FFI_SYSV, FFI_STDCALL, FFI_FASTCALL };
+static const char *const ffi_abi_names[] = { "default", "cdecl", "stdcall", "fastcall", NULL};
 
 static alien_Library *alien_checklibrary(lua_State *L, int index) {
   return (alien_Library *)luaL_checkudata(L, index, ALIEN_LIBRARY_META);
@@ -783,7 +780,12 @@ static int alien_function_call(lua_State *L) {
   case AT_float: ffi_call(cif, af->fn, &fret, args); lua_pushnumber(L, fret); break;
   case AT_double: ffi_call(cif, af->fn, &dret, args); lua_pushnumber(L, dret); break;
   case AT_string: ffi_call(cif, af->fn, &pret, args);
-    (pret ? lua_pushstring(L, (const char *)pret) : lua_pushnil(L)); break;
+    if (pret) {
+      lua_pushstring(L, (const char *)pret);
+    } else {
+      lua_pushnil(L);
+    }
+    break;
   case AT_pointer: ffi_call(cif, af->fn, &pret, args);
     (pret ? lua_pushlightuserdata(L, pret) : lua_pushnil(L)); break;
   default:

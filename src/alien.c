@@ -344,15 +344,17 @@ static void *alien_loadfunc (lua_State *L, void *lib, const char *sym) {
 
 #endif
 
-#if defined(_WIN64) || defined (__x86_64__)
+#if !defined(WINDOWS) || defined(_WIN64)
 #define FFI_STDCALL FFI_DEFAULT_ABI
-#define FFI_FASTCALL FFI_DEFAULT_ABI
+#define FFI_SYSV FFI_DEFAULT_ABI
 #endif
 
+#ifdef __APPLE__
 #define FFI_SYSV FFI_DEFAULT_ABI
+#endif
 
-static const ffi_abi ffi_abis[] = { FFI_DEFAULT_ABI, FFI_SYSV, FFI_STDCALL, FFI_FASTCALL };
-static const char *const ffi_abi_names[] = { "default", "cdecl", "stdcall", "fastcall", NULL};
+static const ffi_abi ffi_abis[] = { FFI_DEFAULT_ABI, FFI_SYSV, FFI_STDCALL };
+static const char *const ffi_abi_names[] = { "default", "cdecl", "stdcall", NULL};
 
 static alien_Library *alien_checklibrary(lua_State *L, int index) {
   return (alien_Library *)luaL_checkudata(L, index, ALIEN_LIBRARY_META);
